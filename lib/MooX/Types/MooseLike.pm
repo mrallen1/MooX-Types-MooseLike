@@ -1,6 +1,6 @@
 use strictures 1;
 package MooX::Types::MooseLike;
-use base qw(Exporter);
+use parent qw(Exporter);
 
 sub register_types {
   my ($type_definitions, $into) = @_;
@@ -35,7 +35,13 @@ sub make_type {
  when defining type: $type_definition->{name}";
     my $subtype_test = $from . '::is_' . $subtype_of;
     no strict 'refs';    ## no critic
-    $full_test = sub {return (&{$subtype_test}(@_) && $test->(@_)); };
+    if ( exists $type_definition->{test_join} && $type_definition->{test_join} eq "or" ) {
+        # reverse the test order here in case the derived tests defined-ness
+        $full_test = sub {return ($test->(@_) || &{$subtype_test}(@_) ); };
+    }
+    else {
+        $full_test = sub {return (&{$subtype_test}(@_) && $test->(@_)); };
+    }
   }
 
   return {
